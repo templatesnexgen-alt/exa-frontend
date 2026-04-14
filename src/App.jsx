@@ -10,7 +10,7 @@ function App() {
   const [resultsData, setResultsData] = useState([]);
 
   // ඔයාගේ අලුත් Replit ලින්ක් එක මෙතන තියෙන්නේ
-  const BASE_URL = "https://625c2dd5-4267-4bfd-8be0-37723d364f59-00-3rpkswq2be1v.pike.replit.dev:8080";
+  const BASE_URL = "https://sgrlvijerathna-nexa-backend.hf.space";
 
   useEffect(() => {
     let interval;
