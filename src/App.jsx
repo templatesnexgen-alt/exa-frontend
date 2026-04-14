@@ -1,176 +1,200 @@
-import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Briefcase, Mail, Play, CheckCircle, Loader2, Moon, Sun, Terminal, Square } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
 
-function App() {
-  const [loading, setLoading] = useState(false);
-  const [showResults, setShowResults] = useState(false);
-  const [isDark, setIsDark] = useState(true);
+// අලුත් Hugging Face Backend Link එක
+const BASE_URL = "https://sgrlvijerathna-nexa-backend.hf.space";
+
+export default function App() {
+  const [niche, setNiche] = useState("Hotels & Resorts");
+  const [location, setLocation] = useState("Maldives");
   const [emailCount, setEmailCount] = useState(5);
-  const [logs, setLogs] = useState([]);
-  const [resultsData, setResultsData] = useState([]);
+  
+  const [status, setStatus] = useState({ is_running: false, logs: [], results: [] });
+  const [error, setError] = useState(null);
+  const logsEndRef = useRef(null);
 
-  // ඔයාගේ අලුත් Replit ලින්ක් එක මෙතන තියෙන්නේ
-  const BASE_URL = "https://sgrlvijerathna-nexa-backend.hf.space";
-
-  useEffect(() => {
-    let interval;
-    if (loading) {
-      interval = setInterval(async () => {
-        try {
-          const res = await fetch(`${BASE_URL}/status`);
-          const data = await res.json();
-          setLogs(data.logs);
-          setResultsData(data.results);
-          if (!data.is_running && data.logs.length > 0) {
-            setLoading(false);
-            setShowResults(true);
-            clearInterval(interval);
-          }
-        } catch (error) {
-          console.error("Status fetching error");
-        }
-      }, 2000);
-    }
-    return () => clearInterval(interval);
-  }, [loading]);
-
-  const startAssistant = async (e) => {
-    e.preventDefault();
-    setShowResults(false);
-    setLoading(true);
-    setLogs(["Connecting to Digital Nexa Engine..."]);
-    setResultsData([]);
-
+  const fetchStatus = async () => {
     try {
-      await fetch(`${BASE_URL}/start-assistant`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ niche: "Hotels & Resorts", location: "Maldives", emailCount: parseInt(emailCount) }),
-      });
-    } catch (error) {
-      alert("Backend error. Please check if Replit is running.");
-      setLoading(false);
+      const res = await fetch(`${BASE_URL}/status`);
+      if (!res.ok) throw new Error("Backend error");
+      const data = await res.json();
+      setStatus(data);
+      setError(null);
+    } catch (err) {
+      setError("Backend error. Please check if Hugging Face Space is running.");
     }
   };
 
-  const stopAssistant = async () => {
+  useEffect(() => {
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (logsEndRef.current) {
+      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [status.logs]);
+
+  const handleStart = async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/start-assistant`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ niche, location, emailCount: parseInt(emailCount) })
+      });
+      if (!res.ok) throw new Error("Failed to start");
+      fetchStatus();
+    } catch (err) {
+      alert("Error starting campaign: " + err.message);
+    }
+  };
+
+  const handleStop = async () => {
     try {
       await fetch(`${BASE_URL}/stop-assistant`, { method: "POST" });
-      setLogs(prev => [...prev, "🛑 Stopping campaign... Please wait."]);
-    } catch (error) {
-      console.error("Error stopping");
+      fetchStatus();
+    } catch (err) {
+      alert("Error stopping campaign");
     }
   };
 
   return (
-    <div className={isDark ? "dark" : ""}>
-      <div className="min-h-screen bg-slate-50 dark:bg-neutral-950 p-8 font-sans transition-colors duration-300">
-        <div className="max-w-5xl mx-auto space-y-8">
-          <div className="bg-white dark:bg-neutral-900 p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-neutral-800 flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-800 dark:text-neutral-50">Digital Nexa Assistant</h1>
-              <p className="text-slate-500 dark:text-neutral-400 mt-2">Automated Lead Generation & Pitching System</p>
+    <div className="min-h-screen bg-[#111111] text-gray-200 p-4 md:p-8 font-sans">
+      <div className="max-w-6xl mx-auto space-y-6">
+        
+        {/* Header Section */}
+        <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6 flex justify-between items-center shadow-lg">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-1">Digital Nexa Assistant</h1>
+            <p className="text-gray-400">Automated Lead Generation & Pitching Engine</p>
+          </div>
+          <div className="flex items-center space-x-4">
+            <div className={`px-4 py-2 rounded-full flex items-center space-x-2 border ${status.is_running ? 'bg-blue-900/30 border-blue-500 text-blue-400' : 'bg-gray-800 border-gray-600 text-gray-300'}`}>
+              <div className={`w-3 h-3 rounded-full ${status.is_running ? 'bg-blue-500 animate-pulse' : 'bg-gray-400'}`}></div>
+              <span className="font-medium">{status.is_running ? 'System Running' : 'System Online'}</span>
             </div>
-            <div className="flex items-center gap-4">
-              <button onClick={() => setIsDark(!isDark)} className="p-3 bg-slate-100 dark:bg-neutral-800 text-slate-600 dark:text-neutral-300 rounded-xl hover:bg-slate-200 dark:hover:bg-neutral-700">
-                {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-              </button>
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl flex items-center gap-3">
-                <span className="relative flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-blue-600 dark:bg-blue-500"></span></span>
-                <span className="text-blue-700 dark:text-blue-400 font-medium">System Online</span>
+          </div>
+        </div>
+
+        {/* Error Popup */}
+        {error && (
+          <div className="bg-red-900/50 border border-red-500 text-red-200 p-4 rounded-lg flex justify-between items-center">
+            <span>⚠️ {error}</span>
+            <button onClick={() => setError(null)} className="bg-red-800 px-3 py-1 rounded text-sm hover:bg-red-700">OK</button>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          
+          {/* Controls Section (Left Side) */}
+          <div className="bg-[#1a1a1a] border border-gray-800 rounded-xl p-6 shadow-lg h-fit">
+            <h2 className="text-xl font-semibold text-white mb-6 flex items-center">
+              🔍 නව සෙවුමක්
+            </h2>
+            
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">💼 ක්ෂේත්‍රය (Niche)</label>
+                <select value={niche} onChange={(e) => setNiche(e.target.value)} className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all">
+                  <option value="Hotels & Resorts">Hotels & Resorts</option>
+                  <option value="Real Estate Developers">Real Estate Developers</option>
+                  <option value="Architecture Firms">Architecture Firms</option>
+                  <option value="Travel & Tour Agencies">Travel & Tour Agencies</option>
+                  <option value="Luxury Spas & Wellness">Luxury Spas & Wellness</option>
+                  <option value="Private Yacht Charters">Private Yacht Charters</option>
+                  <option value="Fine Dining Restaurants">Fine Dining Restaurants</option>
+                  <option value="Corporate Event Planners">Corporate Event Planners</option>
+                  <option value="Premium Car Rentals">Premium Car Rentals</option>
+                  <option value="Boutique Law Firms">Boutique Law Firms</option>
+                  <option value="Wealth Management Firms">Wealth Management Firms</option>
+                  <option value="High-End Interior Designers">High-End Interior Designers</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">📍 ස්ථානය (Location)</label>
+                <select value={location} onChange={(e) => setLocation(e.target.value)} className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all">
+                  <option value="Maldives">Maldives</option>
+                  <option value="Dubai, UAE">Dubai, UAE</option>
+                  <option value="Singapore">Singapore</option>
+                  <option value="Doha, Qatar">Doha, Qatar</option>
+                  <option value="Seychelles">Seychelles</option>
+                  <option value="Mauritius">Mauritius</option>
+                  <option value="Bali, Indonesia">Bali, Indonesia</option>
+                  <option value="Switzerland">Switzerland</option>
+                  <option value="Monaco">Monaco</option>
+                  <option value="London, UK">London, UK</option>
+                  <option value="New York, USA">New York, USA</option>
+                  <option value="Paris, France">Paris, France</option>
+                  <option value="Tokyo, Japan">Tokyo, Japan</option>
+                  <option value="Sydney, Australia">Sydney, Australia</option>
+                  <option value="Toronto, Canada">Toronto, Canada</option>
+                  <option value="Berlin, Germany">Berlin, Germany</option>
+                  <option value="Rome, Italy">Rome, Italy</option>
+                  <option value="Barcelona, Spain">Barcelona, Spain</option>
+                  <option value="Amsterdam, Netherlands">Amsterdam, Netherlands</option>
+                  <option value="Stockholm, Sweden">Stockholm, Sweden</option>
+                  <option value="Copenhagen, Denmark">Copenhagen, Denmark</option>
+                  <option value="Riyadh, Saudi Arabia">Riyadh, Saudi Arabia</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">✉️ දිනකට යවන ඊමේල් ගණන</label>
+                <input 
+                  type="number" 
+                  value={emailCount} 
+                  onChange={(e) => setEmailCount(e.target.value)} 
+                  min="1" 
+                  max="50"
+                  className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg p-3 text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-all"
+                />
+              </div>
+
+              <div className="pt-4">
+                {!status.is_running ? (
+                  <button onClick={handleStart} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2">
+                    <span>▶️ Assistant ක්‍රියාත්මක කරන්න</span>
+                  </button>
+                ) : (
+                  <button onClick={handleStop} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2">
+                    <span>⏹️ නවත්වන්න (Stop)</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-1 bg-white dark:bg-neutral-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-neutral-800">
-              <h2 className="text-xl font-semibold text-slate-800 dark:text-neutral-50 mb-6 flex items-center gap-2"><Search className="w-5 h-5 text-blue-600 dark:text-blue-500" /> නව සෙවුමක්</h2>
-              <form onSubmit={startAssistant} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-neutral-300 mb-2 flex items-center gap-2"><Briefcase className="w-4 h-4" /> ක්ෂේත්‍රය</label>
-                  <select value={niche} onChange={(e) => setNiche(e.target.value)} className="...">
-                    <option value="Hotels & Resorts">Hotels & Resorts</option>
-                    <option value="Real Estate">Real Estate</option>
-                    <option value="Travel Agencies">Travel Agencies</option>
-                    <option value="Restaurants">Restaurants</option>
-                    <option value="Architecture Firms">Architecture Firms</option>
-                    <option value="Luxury Spas & Wellness">Luxury Spas & Wellness</option>
-                    <option value="Private Yacht Charters">Private Yacht Charters</option>
-                  </select>
+          {/* Terminal / Logs Section (Right Side) */}
+          <div className="md:col-span-2 bg-[#1a1a1a] border border-gray-800 rounded-xl p-6 shadow-lg flex flex-col">
+            <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
+              &gt;_ Live System Feed
+            </h2>
+            <div className="bg-[#050505] border border-gray-800 rounded-lg p-4 font-mono text-sm overflow-y-auto h-[400px] flex-grow">
+              {status.logs.length === 0 ? (
+                <div className="text-gray-500 italic">Waiting for command... System idle.</div>
+              ) : (
+                <div className="space-y-2">
+                  {status.logs.map((log, index) => (
+                    <div key={index} className="text-green-400 break-words">
+                      <span className="text-gray-500">[{new Date().toLocaleTimeString()}]</span> {log}
+                    </div>
+                  ))}
+                  <div ref={logsEndRef} />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-neutral-300 mb-2 flex items-center gap-2"><MapPin className="w-4 h-4" /> ස්ථානය</label>
-                  <select value={location} onChange={(e) => setLocation(e.target.value)} className="...">
-                    <option value="Maldives">Maldives</option>
-                    <option value="Dubai">Dubai</option>
-                    <option value="Dubai, UAE">Dubai, UAE</option>
-                    <option value="Singapore">Singapore</option>
-                    <option value="Doha, Qatar">Doha, Qatar</option>
-                    <option value="Seychelles">Seychelles</option>
-                    <option value="Mauritius">Mauritius</option>
-                    <option value="Bali, Indonesia">Bali, Indonesia</option>
-                    <option value="Switzerland">Switzerland</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-neutral-300 mb-2 flex items-center gap-2"><Mail className="w-4 h-4" /> දිනකට යවන ඊමේල් ගණන</label>
-                  <input type="number" value={emailCount} onChange={(e) => setEmailCount(e.target.value)} min="1" max="50" className="w-full p-3 bg-slate-50 dark:bg-neutral-950 border border-slate-200 dark:border-neutral-700 text-slate-800 dark:text-neutral-200 rounded-lg outline-none" />
-                </div>
-                {!loading ? (
-                  <button type="submit" className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2 mt-4">
-                    <Play className="w-5 h-5 fill-current" /> Assistant ක්‍රියාත්මක කරන්න
-                  </button>
-                ) : (
-                  <button type="button" onClick={stopAssistant} className="w-full py-3 px-4 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-all flex items-center justify-center gap-2 mt-4">
-                    <Square className="w-5 h-5 fill-current" /> නවත්වන්න (Stop)
-                  </button>
-                )}
-              </form>
+              )}
             </div>
 
-            <div className="md:col-span-2 bg-white dark:bg-neutral-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-neutral-800 flex flex-col">
-              <h2 className="text-xl font-semibold text-slate-800 dark:text-neutral-50 mb-6 flex items-center gap-2"><Terminal className="w-5 h-5" /> Live System Feed</h2>
-              {!loading && !showResults && (
-                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 dark:text-neutral-600">
-                  <Search className="w-16 h-16 mb-4 opacity-20" />
-                  <p>Assistant ක්‍රියාත්මක කර ඊමේල් යැවීම අරඹන්න</p>
-                </div>
-              )}
-              {(loading || showResults) && (
-                <div className="flex-1 flex flex-col mb-6">
-                  <div className="bg-slate-950 rounded-xl p-4 font-mono text-sm h-64 overflow-y-auto border border-slate-800 shadow-inner flex flex-col gap-2">
-                    {logs.map((log, index) => (
-                      <div key={index} className="text-green-400">
-                        <span className="text-slate-600">[{new Date().toLocaleTimeString()}]</span> <span className={log.includes("Waiting") ? "text-yellow-400" : log.includes("🛑") ? "text-red-400" : ""}>{log}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {showResults && resultsData.length > 0 && (
-                <div className="overflow-x-auto border border-slate-200 dark:border-neutral-800 rounded-lg">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-50 dark:bg-neutral-950/50 text-slate-600 dark:text-neutral-400 border-b border-slate-200 dark:border-neutral-800">
-                      <tr><th className="p-4">සමාගම</th><th className="p-4">ඊමේල්</th><th className="p-4">තත්ත්වය</th></tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-neutral-800">
-                      {resultsData.map((res, i) => (
-                        <tr key={i} className="hover:bg-slate-50 dark:hover:bg-neutral-800/50">
-                          <td className="p-4 font-medium text-slate-800 dark:text-neutral-200">{res.company}</td>
-                          <td className="p-4 text-slate-600 dark:text-neutral-400">{res.email}</td>
-                          <td className="p-4"><span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 px-2 py-1 rounded text-xs font-semibold">{res.status}</span></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+            {/* Results Counter */}
+            <div className="mt-4 pt-4 border-t border-gray-800 flex justify-between items-center text-sm text-gray-400">
+              <div>Successfully Sent: <span className="text-white font-bold">{status.results.filter(r => r.status === "Sent").length}</span></div>
+              <div>Total Scanned: <span className="text-white font-bold">{status.results.length}</span></div>
             </div>
           </div>
+
         </div>
       </div>
     </div>
   );
 }
-
-export default App;
