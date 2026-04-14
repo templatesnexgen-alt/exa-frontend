@@ -88,11 +88,29 @@ function App() {
               <form onSubmit={startAssistant} className="space-y-5">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-neutral-300 mb-2 flex items-center gap-2"><Briefcase className="w-4 h-4" /> ක්ෂේත්‍රය</label>
-                  <select className="w-full p-3 bg-slate-50 dark:bg-neutral-950 border border-slate-200 dark:border-neutral-700 text-slate-800 dark:text-neutral-200 rounded-lg outline-none"><option>Hotels & Resorts</option></select>
+                  <select value={niche} onChange={(e) => setNiche(e.target.value)} className="...">
+                    <option value="Hotels & Resorts">Hotels & Resorts</option>
+                    <option value="Real Estate">Real Estate</option>
+                    <option value="Travel Agencies">Travel Agencies</option>
+                    <option value="Restaurants">Restaurants</option>
+                    <option value="Architecture Firms">Architecture Firms</option>
+                    <option value="Luxury Spas & Wellness">Luxury Spas & Wellness</option>
+                    <option value="Private Yacht Charters">Private Yacht Charters</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-neutral-300 mb-2 flex items-center gap-2"><MapPin className="w-4 h-4" /> ස්ථානය</label>
-                  <select className="w-full p-3 bg-slate-50 dark:bg-neutral-950 border border-slate-200 dark:border-neutral-700 text-slate-800 dark:text-neutral-200 rounded-lg outline-none"><option>Maldives</option></select>
+                  <select value={location} onChange={(e) => setLocation(e.target.value)} className="...">
+                    <option value="Maldives">Maldives</option>
+                    <option value="Dubai">Dubai</option>
+                    <option value="Dubai, UAE">Dubai, UAE</option>
+                    <option value="Singapore">Singapore</option>
+                    <option value="Doha, Qatar">Doha, Qatar</option>
+                    <option value="Seychelles">Seychelles</option>
+                    <option value="Mauritius">Mauritius</option>
+                    <option value="Bali, Indonesia">Bali, Indonesia</option>
+                    <option value="Switzerland">Switzerland</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-neutral-300 mb-2 flex items-center gap-2"><Mail className="w-4 h-4" /> දිනකට යවන ඊමේල් ගණන</label>
